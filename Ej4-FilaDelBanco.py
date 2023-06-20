@@ -1,52 +1,43 @@
-from queue import Queue
-
-# El tipo de fila debería ser Queue[int], pero la versión de python del CMS no lo soporta. Usaremos en su lugar simplemente "Queue"
+from typing import Dict, Queue
 
 # El tipo de fila debería ser Queue[int], pero la versión de Python del CMS no lo soporta. Usaremos en su lugar simplemente "Queue"
-def avanzarFila(fila: Queue, min: int) -> list:
-    n: int = fila.qsize()  # Número de personas en la fila
-    caja1: int = 1  # Momento en el que caja1 atiende
-    caja2: int = 3  # Momento en el que caja2 atiende
-    caja3: int = 2  # Momento en el que caja3 atiende
-    caja3_regresa: int = -1  # Momento en que la persona atendida por caja3 regresa a la fila
-    persona: int = -1  # Persona atendida por caja3
-    tiempo: int = 0  # Variable que controla el tiempo transcurrido
-    fila_final = []  # Fila final después de avanzar los minutos dados
+def avanzarFila(fila: Queue, min: int):
+    # Número de la última persona que llegó
+    last_person:int = fila.qsize()
+    # Tiempo de retorno para las personas que necesitan volver a la fila después de la Caja3
+    return_times: Dict[int,int] = {}
+    
+    # Manejo de variables para manejar las cajas
+    caja1_next: int = 1  # Próxima vez que la Caja1 estará libre
+    caja2_next: int = 3  # Próxima vez que la Caja2 estará libre
+    caja3_next: int = 2  # Próxima vez que la Caja3 estará libre
 
-    while tiempo <= min:  # Simulamos el paso del tiempo
-        # Cada 4 minutos a partir de las 10:00, llega una nueva persona a la fila
-        if tiempo != 0 and tiempo % 4 == 0:
-            n += 1
-            fila.put(n)
+    for t in range(min + 1):  # Simulamos hasta el minuto dado
+        # Cada 4 minutos llega una nueva persona
+        if t % 4 == 0:
+            last_person += 1
+            fila.put(last_person) # Agrega a la nueva persona
 
-        # Verificamos si es el tiempo en que la persona atendida por Caja3 debe regresar a la fila
-        if tiempo == caja3_regresa and persona != -1:
-            fila.put(persona)
-            persona = -1
-            caja3_regresa = -1
+        # Si alguien necesita volver a la fila en este minuto, los añadimos
+        if t in return_times:
+            fila.put(return_times[t]) # Añadimos a la fila a la persona que debía regresar a ella en el t minuto.
+            del return_times[t] # Eliminamos entrada del diccionario (no se si lo necesito, pero vine renegando bastante, asi que por las dudas lo saco)
+        # Verificamos qué cajas están disponibles y atendemos a las personas en orden
+        if not fila.empty():
+            if t == caja1_next:
+                fila.get()
+                caja1_next += 10  # La Caja1 estará libre de nuevo en 10 minutos
+            elif t == caja2_next:
+                fila.get()
+                caja2_next += 4  # La Caja2 estará libre de nuevo en 4 minutos
+            elif t == caja3_next:
+                # La persona vuelve a la fila después de 3 minutos
+                return_times[t + 3] = fila.get()
+                caja3_next += 4  # La Caja3 estará libre de nuevo en 4 minutos
 
-        # Verificamos si es el tiempo para que Caja1 atienda a la siguiente persona
-        if tiempo == caja1 and not fila.empty():
-            fila.get()
-            caja1 += 10  # Caja1 puede atender a la siguiente persona en 10 minutos
+    return fila
 
-        # Verificamos si es el tiempo para que Caja2 atienda a la siguiente persona
-        if tiempo == caja2 and not fila.empty():
-            fila.get()
-            caja2 += 4  # Caja2 puede atender a la siguiente persona en 4 minutos
 
-        # Verificamos si es el tiempo para que Caja3 atienda a la siguiente persona
-        if tiempo == caja3 and not fila.empty() and persona == -1:
-            persona = fila.get()
-            caja3 += 4  # Caja3 puede atender a la siguiente persona en 4 minutos
-            caja3_regresa = tiempo + 3  # La persona atendida por Caja3 regresa a la fila en 3 minutos
-
-        tiempo += 1  # Avanzamos el tiempo
-
-    while not fila.empty():  # Al final, trasladamos los restantes de la fila a la fila_final
-        fila_final.append(fila.get())
-
-    return fila_final
 
 if __name__ == '__main__':
   fila: Queue = Queue()
